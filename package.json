@@ -1,0 +1,22 @@
+{
+  "name": "webgl-demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "parcel src/index.html",
+    "build": "parcel build <entry file>"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@parcel/transformer-less": "2.9.3",
+    "parcel": "^2.9.3"
+  },
+  "dependencies": {
+    "reset-css": "^5.0.2",
+    "three": "^0.155.0"
+  }
+}
