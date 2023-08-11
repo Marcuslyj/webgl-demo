@@ -6,16 +6,29 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "parcel src/index.html",
-    "build": "parcel build <entry file>"
+    "build": "parcel build src/index.html"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "customDistStructure": {
+    "config": {
+      ".mp3": "audio"
+    },
+    "options": {
+      "development": true
+    }
+  },
   "devDependencies": {
     "@parcel/transformer-less": "2.9.3",
-    "parcel": "^2.9.3"
+    "parcel": "^2.9.3",
+    "parcel-plugin-custom-dist-structure": "^1.1.20",
+    "parcel-plugin-static-files-copy": "^2.6.0"
   },
   "dependencies": {
+    "cannon-es": "^0.20.0",
+    "dat.gui": "^0.7.9",
+    "gsap": "^3.12.2",
     "reset-css": "^5.0.2",
     "three": "^0.155.0"
   }
