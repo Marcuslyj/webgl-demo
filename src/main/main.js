@@ -1,90 +1,121 @@
-import * as THREE from 'three'
-// 导入动画库
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import gsap from "gsap";
-// 导入dat.gui
 import * as dat from "dat.gui";
-// 导入connon引擎
-import * as CANNON from "cannon-es";
-import { setResize } from '../utils/resize';
-import { addScene, addCamera, addFloor, addLight, initRenderer, initOrbitControls, initAxesHelper, createWorld, addWorldFloor, createCube, setContactMaterial } from './utils'
 
-// 击打声音
-const hitSound = new Audio("public/audio/metalHit.mp3");
+// 顶点着色器
+import basicVertexShader from "../shader/raw/vertex.glsl";
+// 片元着色器
+import basicFragmentShader from "../shader/raw/fragment.glsl";
 
-// 1、创建场景
-const scene = addScene();
-// 2、创建相机
-const camera = addCamera(scene);
-// 3、添加环境光和平行光
-const { ambientLight, dirLight } = addLight(scene);
-// 添加地板
-const floor = addFloor(scene);
+// 目标：认识shader
 
-// 创建物理世界
-const world = createWorld();
-//设置物体材质
-const cubeWorldMaterial = new CANNON.Material("cube");
-// 立方体数组
-const cubeArr = [];
+//创建gui对象
+const gui = new dat.GUI();
 
-// 物理世界创建地面
-const { floorBody: worldFloor, floorMaterial: worldFloorMaterial } = addWorldFloor(world);
-// 设置碰撞参数
-setContactMaterial(world, cubeWorldMaterial, worldFloorMaterial);
+// console.log(THREE);
+// 初始化场景
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('black')
 
+// 创建透视相机
+const camera = new THREE.PerspectiveCamera(
+  90,
+  window.innerHeight / window.innerHeight,
+  0.1,
+  1000
+);
+// 设置相机位置
+// object3d具有position，属性是1个3维的向量
+camera.position.set(0, 0, 2);
+// 更新摄像头
+camera.aspect = window.innerWidth / window.innerHeight;
+//   更新摄像机的投影矩阵
+camera.updateProjectionMatrix();
+scene.add(camera);
 
-const onCreateCube = () => {
-  const cubeItem = createCube({ scene, world, cubeWorldMaterial, hitSound });
-  cubeArr.push(cubeItem);
-}
+// 加入辅助轴，帮助我们查看3维坐标轴
+const axesHelper = new THREE.AxesHelper(5);
+scene.add(axesHelper);
 
+// 加载纹理
 
+// 创建纹理加载器对象
+const textureLoader = new THREE.TextureLoader();
+const texture = textureLoader.load("./assets/ca.jpeg");
 
+const params = {
+  uFrequency: 10,
+  uScale: 0.1,
+};
+
+// const material = new THREE.MeshBasicMaterial({ color: "#00ff00" });
+// 创建原始着色器材质
+const rawShaderMaterial = new THREE.RawShaderMaterial({
+  vertexShader: basicVertexShader,
+  fragmentShader: basicFragmentShader,
+  //   wireframe: true,
+  side: THREE.DoubleSide,
+  uniforms: {
+    uTime: {
+      value: 0,
+    },
+    uTexture: {
+      value: texture,
+    },
+  },
+});
+
+// 创建平面
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(1, 1, 64, 64),
+  rawShaderMaterial
+);
+
+console.log(floor);
+scene.add(floor);
 
 // 初始化渲染器
-const renderer = initRenderer();
-// 创建轨道控制器
-const controls = initOrbitControls(camera, renderer);
-// 添加坐标轴辅助器
-const axesHelper = initAxesHelper(scene);
-// 设置时钟
+const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+// renderer.shadowMap.enabled = true;
+// renderer.shadowMap.type = THREE.BasicShadowMap;
+// renderer.shadowMap.type = THREE.VSMShadowMap;
+
+// 设置渲染尺寸大小
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+// 监听屏幕大小改变的变化，设置渲染的尺寸
+window.addEventListener("resize", () => {
+  //   console.log("resize");
+  // 更新摄像头
+  camera.aspect = window.innerWidth / window.innerHeight;
+  //   更新摄像机的投影矩阵
+  camera.updateProjectionMatrix();
+
+  //   更新渲染器
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  //   设置渲染器的像素比例
+  renderer.setPixelRatio(window.devicePixelRatio);
+});
+
+// 将渲染器添加到body
+document.body.appendChild(renderer.domElement);
+
+// 初始化控制器
+const controls = new OrbitControls(camera, renderer.domElement);
+// 设置控制器阻尼
+controls.enableDamping = true;
+// 设置自动旋转
+// controls.autoRotate = true;
+
 const clock = new THREE.Clock();
-
-function render() {
-  const deltaTime = clock.getDelta();
-  // 更新物理引擎里世界的物体
-  world.step(1 / 120, deltaTime);
-
-  cubeArr.forEach((item) => {
-    item.mesh.position.copy(item.body.position);
-    // 设置渲染的物体跟随物理的物体旋转
-    item.mesh.quaternion.copy(item.body.quaternion);
-  });
-
+function animate(t) {
+  const elapsedTime = clock.getElapsedTime();
+  //   console.log(elapsedTime);
+  rawShaderMaterial.uniforms.uTime.value = elapsedTime;
+  requestAnimationFrame(animate);
+  // 使用渲染器渲染相机看这个场景的内容渲染出来
   renderer.render(scene, camera);
-  //   渲染下一帧的时候就会调用render函数
-  requestAnimationFrame(render);
 }
 
-render();
-
-// 监听画面变化，更新渲染画面[更新相机参数、渲染器参数]
-setResize({ camera, renderer })
-// 点击鼠标就创建立方体
-let hasStart = false;
-window.addEventListener("click", () => {
-  if (!hasStart) {
-    hasStart = true;
-    let count = 0
-    let interval =
-      setInterval(() => {
-        if (count < 5) {
-          onCreateCube()
-          count++
-        } else {
-          hasStart = false
-          clearInterval(interval)
-        }
-      }, 10)
-  }
-});
+animate();
